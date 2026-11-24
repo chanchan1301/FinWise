@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FinWise</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0f766e">
+<link rel="icon" href="icons/icon-192.png"><link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{--bg:#f1f5f4;--c:#fff;--t:#0f172a;--m:#64748b;--p:#0f766e;--g:#d4a017;--r:#dc2626;--b:#e2e8f0}
+[data-d]{--bg:#0b1220;--c:#162033;--t:#e8eef7;--m:#94a3b8;--b:#25324a}
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;background:linear-gradient(160deg,#0f766e18,#d4a01718),var(--bg);color:var(--t);padding-top:env(safe-area-inset-top)}
+main{max-width:640px;margin:auto;padding:14px 14px 90px}.card{background:var(--c);border:1px solid var(--b);border-radius:16px;padding:14px;margin-bottom:12px}
+h2{margin:4px 0 10px;font-size:18px}h3{margin:0 0 8px;font-size:15px}.m{color:var(--m);font-size:13px}.big{font-size:26px;font-weight:700}
+.hero{background:linear-gradient(135deg,#0f766e,#115e59 60%,#b8860b);color:#fff;border:0}.hero .m{color:#d1fae5}
+input,select,button{font:inherit;padding:10px;border-radius:10px;border:1px solid var(--b);background:var(--c);color:var(--t);width:100%;margin:3px 0}
+button{background:var(--p);color:#fff;border:0;font-weight:600;cursor:pointer}button.s{background:none;color:var(--r);width:auto;padding:2px 8px}button.o{background:var(--c);color:var(--t);border:1px solid var(--b)}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between}.row>*{flex:1}.li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--b)}
+.in{color:var(--p)}.out{color:var(--r)}.bar{height:8px;background:var(--b);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--p)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--c);border-top:1px solid var(--b);padding-bottom:env(safe-area-inset-bottom)}
+nav a{flex:1;text-align:center;padding:10px 0;font-size:11px;color:var(--m);cursor:pointer}nav a.on{color:var(--p);font-weight:700}nav a b{display:block;font-size:20px}
+#auth{max-width:380px;margin:12vh auto;padding:18px}.ch{display:flex;align-items:flex-end;gap:10px;height:110px}.ch div{flex:1;text-align:center}.ch span{display:inline-block;width:40%;border-radius:4px 4px 0 0}
+</style></head><body>
+<div id="auth"><div class="card"><h2>💰 FinWise</h2><p class="m">Atur keuangan &amp; tabungan emas</p>
+<input id="u" placeholder="Username" autocapitalize="none"><input id="pw" type="password" placeholder="Password (min. 6 karakter)">
+<button onclick="login()">Masuk</button><button class="o" onclick="reg()">Daftar akun baru</button><p id="e" class="out"></p></div></div>
+<div id="app" hidden><main id="v"></main><nav id="nav"></nav></div>
+<script>
+const $=s=>document.querySelector(s),ls=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},sv=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const rp=n=>(n<0?'-':'')+'Rp'+Math.round(Math.abs(n)).toLocaleString('id-ID'),today=()=>new Date().toISOString().slice(0,10),mo=d=>d.slice(0,7);
+const H=async p=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('fw'+p)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+const CI=['Gaji','Bonus','Lainnya'],CO=['Makan','Transport','Belanja','Tagihan','Hiburan','Kesehatan','Pendidikan','Lainnya'];
+let me,db,tab='home',P={idr_per_gram:0,history:[]};
+const save=()=>sv('fw_d_'+me,db);
+async function reg(){const u=$('#u').value.trim().toLowerCase(),p=$('#pw').value,U=ls('fw_users',{});
+ if(u.length<3||p.length<6)return $('#e').textContent='Username min. 3, password min. 6 karakter';
+ if(U[u])return $('#e').textContent='Username sudah dipakai';U[u]=await H(p);sv('fw_users',U);start(u)}
+async function login(){const u=$('#u').value.trim().toLowerCase(),U=ls('fw_users',{});
+ if(U[u]&&U[u]===await H($('#pw').value))start(u);else $('#e').textContent='Username atau password salah'}
+function start(u){me=u;sv('fw_s',u);db=ls('fw_d_'+u,{tx:[],bud:{},goals:[],gold:[]});$('#auth').hidden=true;$('#app').hidden=false;
+ fetch('prices.json?'+Date.now()).then(r=>r.json()).then(j=>{P=j;draw()}).catch(()=>{});draw()}
+const T=[['home','🏠','Beranda'],['tx','💸','Transaksi'],['bud','📊','Anggaran'],['gold','🪙','Emas'],['goal','🎯','Target'],['more','⚙️','Lainnya']];
+const go=t=>{tab=t;draw()};
+function draw(){$('#nav').innerHTML=T.map(t=>`<a class="${tab==t[0]?'on':''}" onclick="go('${t[0]}')"><b>${t[1]}</b>${t[2]}</a>`).join('');$('#v').innerHTML=V[tab]()}
+const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0),cur=()=>db.tx.filter(x=>mo(x.d)==mo(today()));
+const opt=a=>a.map(x=>`<option>${x}</option>`).join('');
+const V={
+home(){const i=sum(cur().filter(x=>x.t=='in'),x=>x.a),o=sum(cur().filter(x=>x.t=='out'),x=>x.a),all=sum(db.tx,x=>x.t=='in'?x.a:-x.a),
+ gv=sum(db.gold,x=>x.g)*P.idr_per_gram,ms=[...Array(6)].map((_,k)=>{const d=new Date();d.setMonth(d.getMonth()-5+k);return d.toISOString().slice(0,7)}),
+ d=ms.map(m=>[sum(db.tx.filter(x=>mo(x.d)==m&&x.t=='in'),x=>x.a),sum(db.tx.filter(x=>mo(x.d)==m&&x.t=='out'),x=>x.a)]),mx=Math.max(1,...d.flat());
+ const cat={};cur().filter(x=>x.t=='out').forEach(x=>cat[x.c]=(cat[x.c]||0)+x.a);
+ return`<h2>Halo, ${me} 👋</h2><div class="card hero"><div class="m">Total saldo</div><div class="big">${rp(all)}</div><div class="m">+ Emas ${rp(gv)} = Kekayaan ${rp(all+gv)}</div></div>
+ <div class="row"><div class="card"><div class="m">Pemasukan bulan ini</div><b class="in">${rp(i)}</b></div><div class="card"><div class="m">Pengeluaran</div><b class="out">${rp(o)}</b></div></div>
+ <div class="card"><h3>6 bulan terakhir</h3><div class="ch">${d.map((x,k)=>`<div><span style="height:${x[0]/mx*90}px;background:var(--p)"></span><span style="height:${x[1]/mx*90}px;background:var(--r)"></span><div class="m">${ms[k].slice(5)}</div></div>`).join('')}</div><div class="m">🟢 masuk 🔴 keluar</div></div>
+ <div class="card"><h3>Pengeluaran per kategori</h3>${Object.entries(cat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="m">${k} · ${rp(v)}</div><div class="bar"><i style="width:${v/o*100}%"></i></div>`).join('')||'<p class="m">Belum ada data</p>'}</div>
+ <div class="card"><h3>Tips</h3><p class="m">${o>i&&i>0?'⚠️ Pengeluaran melebihi pemasukan bulan ini.':'Sisihkan 20% pemasukan untuk tabungan emas 🪙'}</p></div>`},
+tx(){return`<h2>Transaksi</h2><div class="card"><select id="t" onchange="$('#c').innerHTML=opt(this.value=='in'?CI:CO)"><option value="out">Pengeluaran</option><option value="in">Pemasukan</option></select>
+ <input id="a" type="number" inputmode="numeric" placeholder="Jumlah (Rp)"><select id="c">${opt(CO)}</select><input id="n" placeholder="Catatan"><input id="d" type="date" value="${today()}"><button onclick="addTx()">Simpan</button></div>
+ <div class="card">${[...db.tx].sort((a,b)=>b.d.localeCompare(a.d)).slice(0,50).map(x=>`<div class="li"><div>${x.c}<div class="m">${x.d} ${x.n||''}</div></div><div class="${x.t}">${x.t=='in'?'+':'-'}${rp(x.a)}<button class="s" onclick="del('tx',${x.id})">✕</button></div></div>`).join('')||'<p class="m">Belum ada transaksi</p>'}</div>`},
+bud(){const sp={};cur().filter(x=>x.t=='out').forEach(x=>sp[x.c]=(sp[x.c]||0)+x.a);
+ return`<h2>Anggaran bulanan</h2>${CO.map(c=>{const l=db.bud[c]||0,s=sp[c]||0,p=l?Math.min(100,s/l*100):0;return`<div class="card"><div class="row"><b>${c}</b><input type="number" placeholder="Batas Rp" value="${l||''}" onchange="db.bud['${c}']=+this.value;save();draw()"></div>
+ <div class="m">${rp(s)} / ${l?rp(l):'—'} ${l&&s>l?'<b class=out>⚠️ Melebihi!</b>':''}</div><div class="bar"><i style="width:${p}%;background:${p>=100?'var(--r)':p>80?'var(--g)':'var(--p)'}"></i></div></div>`}).join('')}`},
+gold(){const h=P.history||[],pr=P.idr_per_gram,pv=h.length>1?h[h.length-2].p:pr,ch=pr-pv,G=sum(db.gold,x=>x.g),cost=sum(db.gold,x=>x.g*x.p),val=G*pr,mn=Math.min(...h.map(x=>x.p)),mx=Math.max(...h.map(x=>x.p));
+ const sp=h.length>1?`<svg viewBox="0 0 300 70" width="100%"><polyline fill="none" stroke="#d4a017" stroke-width="3" points="${h.map((x,i)=>`${i/(h.length-1)*300},${65-(x.p-mn)/(mx-mn||1)*60}`).join(' ')}"/></svg>`:'';
+ return`<h2>🪙 Tabungan Emas</h2><div class="card hero"><div class="m">Harga emas / gram ${P.updated?'· update '+P.updated:''}</div><div class="big">${pr?rp(pr):'Belum ada data'}</div><div class="m">${pr?(ch>=0?'▲ ':'▼ ')+rp(ch)+' dari hari sebelumnya':'Jalankan workflow GitHub Actions'}</div></div>
+ <div class="card"><h3>Grafik harga</h3>${sp||'<p class="m">Grafik muncul setelah ada ≥2 hari data</p>'}</div>
+ <div class="card"><h3>Portofolio</h3><div class="row"><div><div class="m">Emas</div><b>${G.toFixed(3)} g</b></div><div><div class="m">Nilai</div><b>${rp(val)}</b></div><div><div class="m">Untung/rugi</div><b class="${val>=cost?'in':'out'}">${rp(val-cost)}</b></div></div></div>
+ <div class="card"><h3>Catat pembelian</h3><input id="g" type="number" step="0.001" placeholder="Berat (gram)"><input id="gp" type="number" placeholder="Harga beli / gram" value="${Math.round(pr)||''}"><input id="gd" type="date" value="${today()}"><button onclick="addGold()">Tambah</button>
+ ${db.gold.map(x=>`<div class="li"><div>${x.g} g<div class="m">${x.d} @ ${rp(x.p)}</div></div><button class="s" onclick="del('gold',${x.id})">✕</button></div>`).join('')}</div>`},
+goal(){return`<h2>Target tabungan</h2><div class="card"><input id="gn" placeholder="Nama target (mis. Liburan)"><input id="gt" type="number" placeholder="Nominal target (Rp)"><button onclick="addGoal()">Buat target</button></div>
+ ${db.goals.map(x=>{const p=Math.min(100,x.s/x.t*100);return`<div class="card"><div class="row"><b>${x.n}</b><span style="text-align:right">${p.toFixed(0)}%</span></div><div class="bar"><i style="width:${p}%"></i></div><div class="m">${rp(x.s)} / ${rp(x.t)}</div><div class="row"><button onclick="fund(${x.id})">+ Setor</button><button class="o" onclick="del('goals',${x.id})">Hapus</button></div></div>`}).join('')}`},
+more(){return`<h2>Pengaturan</h2><div class="card"><button class="o" onclick="document.body.toggleAttribute('data-d')">🌙 Mode gelap</button><button class="o" onclick="exp()">⬇️ Ekspor backup (JSON)</button>
+ <button class="o" onclick="$('#f').click()">⬆️ Impor backup</button><input id="f" type="file" accept=".json" hidden onchange="imp(this.files[0])"><button class="o" id="ins" ${window.dp?'':'hidden'} onclick="dp.prompt()">📲 Pasang aplikasi</button>
+ <button onclick="localStorage.removeItem('fw_s');location.reload()">Keluar</button></div><p class="m">Data tersimpan di perangkat ini. Gunakan ekspor untuk backup / pindah HP.</p>`}};
+const id=()=>Date.now()+Math.random();
+function addTx(){const a=+$('#a').value;if(!a)return;db.tx.push({id:id(),t:$('#t').value,a,c:$('#c').value,n:$('#n').value,d:$('#d').value});save();draw()}
+function addGold(){const g=+$('#g').value,p=+$('#gp').value;if(!g||!p)return;db.gold.push({id:id(),g,p,d:$('#gd').value});save();draw()}
+function addGoal(){const n=$('#gn').value,t=+$('#gt').value;if(!n||!t)return;db.goals.push({id:id(),n,t,s:0});save();draw()}
+function fund(i){const v=+prompt('Jumlah setoran (Rp)');if(v){db.goals.find(x=>x.id==i).s+=v;save();draw()}}
+function del(k,i){if(confirm('Hapus?')){db[k]=db[k].filter(x=>x.id!=i);save();draw()}}
+function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db)],{type:'application/json'}));a.download='finwise-'+today()+'.json';a.click()}
+function imp(f){f.text().then(t=>{try{db=JSON.parse(t);save();draw()}catch{alert('File tidak valid')}})}
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();window.dp=e;const b=$('#ins');if(b)b.hidden=false});
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+const s=ls('fw_s',null);if(s&&ls('fw_users',{})[s])start(s);
+</script></body></html>
