@@ -1,2 +1,7 @@
-{"name":"FinWise","short_name":"FinWise","start_url":"./","scope":"./","display":"standalone","background_color":"#0f766e","theme_color":"#0f766e","lang":"id",
-"icons":[{"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}
+{
+ "name":"FinWise","short_name":"FinWise","description":"Kelola keuangan dan tabungan emas",
+ "start_url":"./index.html","scope":"./","display":"standalone","orientation":"portrait",
+ "background_color":"#0b0d10","theme_color":"#0b0d10","lang":"id",
+ "icons":[{"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+ {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+ {"src":"icons/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}
